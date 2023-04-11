@@ -1,16 +1,19 @@
 cc = /usr/bin/gcc-9
 CFLAGS = -Wall -g -O2 -Werror -std=gnu99
 
-EXE = program
+EXE_HARDWARE = exe_hardware
 
-SRC = ./src
+SRC_DIR = ./src
 
-CODE = ./src/memory/instruction.c ./src/disk/code.c ./src/memory/dram.c ./src/main.c ./src/cpu/mmu.c
+COMMON = $(SRC_DIR)/common/print.c $(SRC_DIR)/common/convert.c
+CPU =$(SRC_DIR)/hardware/cpu/mmu.c $(SRC_DIR)/hardware/cpu/isa.c
+MEMORY = $(SRC_DIR)/hardware/memory/dram.c
+MAIN_HARDWARE = $(SRC_DIR)/main_hardware.c
 
-.PHONY:program
+.PHONY:hardware
+hardware:
+		$(CC) $(CFLAGS) -I$(SRC_DIR) $(COMMON) $(CPU) $(MEMORY) $(DISK) $(MAIN_HARDWARE) -o $(EXE_HARDWARE)
+		./$(EXE_HARDWARE)
 
-main:
-	$(cc) $(CFLAGS) -I$(SRC) $(CODE) -o $(EXE)
-
-run:
-	./$(EXE)
+clear:
+	rm -f *.o  *~ $(EXE)
