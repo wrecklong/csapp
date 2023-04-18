@@ -6,8 +6,8 @@
 #define DEBUG_INSTRUCTION    0x1
 #define DEBUG_REGISTER       0x2
 #define DEBUG_PRINTSTACK     0x4
-#define DEBUG_CACHEDETAILS   0x8
-#define DEBUG_MMU            0x10
+#define DEBUG_PRINTCACHESET  0x8
+#define DEBUG_CACHEDETAILS   0x10
 #define DEBUG_MMU            0x20
 #define DEBUG_LINKER         0x40
 #define DEBUG_LOADER         0x80

@@ -59,8 +59,8 @@ typedef struct INST_STRUCT
 /*======================================*/
 /*      parse assembly instruction      */
 /*======================================*/
-static void parse_instruction(const char *str, inst_t *inst, core_t *cr);
-static void parse_operand(const char *str, od_t *od, core_t *cr);
+// static void parse_instruction(const char *str, inst_t *inst, core_t *cr);
+// static void parse_operand(const char *str, od_t *od, core_t *cr);
 static uint64_t decode_operand(od_t *od);
 
 static uint64_t decode_operand(od_t *od)
@@ -124,15 +124,44 @@ static uint64_t decode_operand(od_t *od)
     }
 }
 
-static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
-{
+// static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
+// {
+//     return;
+// }
 
-}
+// static void parse_operand(const char *str, od_t *od, core_t *cr)
+// {
+//    // str: assembly code string, e.g. mov $rsp, $rbp
+//    // od: pointer to the address to store the parsed operand
+//    // cr: active core
+//    od->type = EMPTY;
+//    od->imm = 0;
+//    od->scal = 0;
+//    od->reg1  = 0;
+//    od->reg2  = 0;
 
-static void parse_operand(const char *str, od_t *od, core_t *cr)
-{
+//    int str_len = strlen(str);
 
-}
+//    if (str_len == 0)
+//    {
+//         return;
+//    }
+
+//    if (str[0] == '$')
+//    {
+//       od->type = IMM;
+//       od->imm = string2uint_range(str, 1, -1);
+//       //imm
+//    }
+//    else if (str[0] == '%')
+//    {
+//       //reg
+//    }
+//    else
+//    {
+//       //memory
+//    }
+// }
 
 /*======================================*/
 /*      instruction handlers            */
@@ -329,7 +358,7 @@ void instruction_cycle(core_t *cr)
 
     // DECODE: decode the run-time instruction operands
     inst_t inst;
-    parse_instruction(inst_str, &inst, cr);
+    // parse_instruction(inst_str, &inst, cr);
 
     // EXECUTE: get the function pointer or handler by the operator
     handler_t handler = handler_table[inst.op];
