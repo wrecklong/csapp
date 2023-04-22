@@ -1,6 +1,7 @@
 #include<headers/cpu.h>
 #include<headers/memory.h>
 #include<headers/common.h>
+#include<assert.h>
 #include<string.h>
 
 uint64_t read64bits_dram(uint64_t paddr, core_t *cr)
@@ -42,8 +43,10 @@ void write64bits_dram(uint64_t paddr, uint64_t data, core_t *cr)
 
 void readinst_dram(uint64_t paddr, char *buf, core_t *cr)
 {
-    
-
+    for (int i = 0; i < MAX_INSTRUCTION_CHAR; i++)
+    {
+        buf[i] = (char)pm[paddr + i];
+    }
 
 }
 

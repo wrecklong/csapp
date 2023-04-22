@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #define PHYSICAL_MEMORY_SPACE 65536
-#define MAX_INDEX_PHYSICAL_PAGE 16
+#define MAX_INDEX_PHYSICAL_PAGE 15
 
 uint8_t pm[PHYSICAL_MEMORY_SPACE];
 

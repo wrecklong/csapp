@@ -263,7 +263,7 @@ static void parse_instruction(const char *str, inst_t *inst, core_t *cr)
     }
     else if (strcmp(op_str, "leaveq") == 0)
     {
-        inst->op = INST_PUSH;
+        inst->op = INST_LEAVE;
     }
     else if (strcmp(op_str, "callq") == 0)
     {
@@ -618,7 +618,17 @@ static void pop_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 
 static void leave_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
+    // movq %rbp %rsp
+    // popq %rbp
+    cr->reg.rsp = cr->reg.rbp;
+    
+    uint64_t old_val = read64bits_dram(va2pa((cr->reg).rsp, cr),cr);
+    (cr->reg).rsp = (cr->reg).rsp + 8;
+    (cr->reg).rbp = old_val;
+    next_rip(cr);
+    reset_cflags(cr);
 }
+
 
 static void call_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
@@ -651,7 +661,16 @@ static void add_handler(od_t *src_od, od_t *dst_od, core_t *cr)
         // dst: register (value: int64_t bit map)
         uint64_t val = *(uint64_t *)dst + *(uint64_t *)src;
 
+        int val_sign = ((val) >> 63) & 0x1;
+        int src_sign = ((*(uint64_t*)src) >> 63) & 0x1;
+        int dst_sign = ((*(uint64_t*)dst) >> 63) & 0x1;
+
         // set condition flags
+        cr->flags.CF = (val < *(uint64_t*)src);
+        cr->flags.ZF = (val == 0);
+        cr->flags.SF = val_sign;
+        cr->flags.OF = (src_sign == 0 && dst_sign == 0 && val_sign == 1) || 
+        (src_sign == 1 && dst_sign == 1 && val_sign == 0);
 
         // update registers
         *(uint64_t *)dst = val;
@@ -664,18 +683,82 @@ static void add_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 
 static void sub_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
+    uint64_t src = decode_operand(src_od);
+    uint64_t dst = decode_operand(dst_od);
+
+    if (src_od->type == IMM && dst_od->type == REG)
+    {
+       // dst = dst - src
+        uint64_t val = *(uint64_t *)dst + (~src + 1);
+      
+        int val_sign = ((val) >> 63) & 0x1;
+        int src_sign = ((src) >> 63) & 0x1;
+        int dst_sign = ((*(uint64_t*)dst) >> 63) & 0x1;
+
+        // set conditional flag
+        cr->flags.CF = (val > *(uint64_t*)dst);  //unsigned
+        cr->flags.ZF = (val == 0);
+        cr->flags.SF = ((val >> 63) & 0x1);
+        cr->flags.OF = (src_sign == 1 && dst_sign == 0 && val_sign == 1) || 
+        (src_sign == 0 && dst_sign == 1 && val_sign == 0);
+
+        *(uint64_t*)dst = val;
+
+        next_rip(cr);
+    }
+
 }
 
 static void cmp_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
+    uint64_t src = decode_operand(src_od);
+    uint64_t dst = decode_operand(dst_od);
+
+    if (src_od->type == IMM && dst_od->type >= MEM_IMM)
+    {
+        // dst = dst - src
+        uint64_t dval = read64bits_dram(va2pa(dst, cr), cr);
+
+        uint64_t val = dval + (~src + 1);
+
+        int val_sign = ((val) >> 63) & 0x1;
+        int src_sign = ((src) >> 63) & 0x1;
+        int dst_sign = (dval >> 63) & 0x1;
+        
+        cr->flags.CF = (val > dval); //unsigned
+        cr->flags.ZF = (val == 0);
+        cr->flags.SF = ((val >> 63) & 0x1);
+        cr->flags.OF = (src_sign == 1 && dst_sign == 0 && val_sign == 1) || 
+        (src_sign == 0 && dst_sign == 1 && val_sign == 0);
+        
+        next_rip(cr);
+
+        return;
+    }
+
 }
 
 static void jne_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
+    uint64_t src = decode_operand(src_od);
+    
+    if (cr->flags.ZF == 0)
+    {
+        cr->rip = src;
+    }
+    else
+    {
+        next_rip(cr);
+    }
+
+    reset_cflags(cr);
 }
 
 static void jmp_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 {
+    uint64_t src = decode_operand(src_od);
+    cr->rip = src;
+    reset_cflags(cr);
 }
 
 // instruction cycle is implemented in CPU
@@ -683,7 +766,10 @@ static void jmp_handler(od_t *src_od, od_t *dst_od, core_t *cr)
 void instruction_cycle(core_t *cr)
 {
     // FETCH: get the instruction string by program counter
-    const char *inst_str = (const char *)cr->rip;
+    //const char *inst_str = (const char *)cr->rip;
+    char inst_str[MAX_INSTRUCTION_CHAR + 10];
+    readinst_dram(va2pa(cr->rip, cr), inst_str, cr);
+
     debug_printf(DEBUG_INSTRUCTION, "%lx    %s\n", cr->rip, inst_str);
 
     // DECODE: decode the run-time instruction operands
