@@ -157,6 +157,11 @@ uint64_t string2uint_range(const char *str, int start, int end)
                 }
                 continue;
             }
+            else if (c == ' ')
+            {
+                state = 6;
+                continue;
+            }
             else {goto fail;}
         }
         else if (state == 6)
