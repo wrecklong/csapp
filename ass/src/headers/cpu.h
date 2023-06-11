@@ -247,6 +247,53 @@ uint64_t ACTIVE_CORE;
 #define MAX_INSTRUCTION_CHAR 64
 #define NUM_INSTRTYPE 14
 
+typedef enum INST_OPERATION
+{
+    INST_MOV,
+    INST_PUSH,
+    INST_POP,
+    INST_LEAVE,
+    INST_CALL,
+    INST_RET,
+    INST_ADD,
+    INST_SUB,
+    INST_CMP,
+    INST_JNE,
+    INST_JMP,
+}op_t;
+
+typedef enum OPERAND_TYPE
+{
+    EMPTY,
+    IMM,
+    REG,
+    MEM_IMM,
+    MEM_REG1,
+    MEM_IMM_REG1,
+    MEM_REG1_REG2,
+    MEM_IMM_REG1_REG2,
+    MEM_REG2_SCAL,
+    MEM_IMM_REG2_SCAL,
+    MEM_REG1_REG2_SCAL,
+    MEM_IMM_REG1_REG2_SCAL,
+} od_type_t;
+
+typedef struct OPERAND_STRUCT
+{
+    od_type_t type;
+    uint64_t imm;
+    uint64_t scal;
+    uint64_t reg1;
+    uint64_t reg2;
+} od_t;
+
+typedef struct INST_STRUCT
+{
+    op_t op;    // enum of operators. e.g. mov, call, etc.
+    od_t src;   // operand src of instruction
+    od_t dst;   // operand dst of instruction
+} inst_t;
+
 void instruction_cycle(core_t *cr);
 
 uint64_t va2pa(uint64_t vaddr, core_t *cr);

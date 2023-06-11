@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <headers/common.h>
 
-
 //int read_elf(const char *filename, uint64_t bufaddr);
 
 int main()
@@ -16,6 +15,8 @@ int main()
 
     elf_t dst;
     link_elf((elf_t **)&src, 2, &dst);
+
+    write_eof("./files/exe/output.eof.txt", &dst);
 
     free_elf(src[0]);
     free_elf(src[1]);

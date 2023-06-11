@@ -5,56 +5,6 @@
 #include<headers/memory.h>
 #include<headers/common.h>
 
-/*======================================*/
-/*      instruction set architecture    */
-/*======================================*/
-
-typedef enum INST_OPERATION
-{
-    INST_MOV,
-    INST_PUSH,
-    INST_POP,
-    INST_LEAVE,
-    INST_CALL,
-    INST_RET,
-    INST_ADD,
-    INST_SUB,
-    INST_CMP,
-    INST_JNE,
-    INST_JMP,
-}op_t;
-
-typedef enum OPERAND_TYPE
-{
-    EMPTY,
-    IMM,
-    REG,
-    MEM_IMM,
-    MEM_REG1,
-    MEM_IMM_REG1,
-    MEM_REG1_REG2,
-    MEM_IMM_REG1_REG2,
-    MEM_REG2_SCAL,
-    MEM_IMM_REG2_SCAL,
-    MEM_REG1_REG2_SCAL,
-    MEM_IMM_REG1_REG2_SCAL,
-} od_type_t;
-
-typedef struct OPERAND_STRUCT
-{
-    od_type_t type;
-    uint64_t imm;
-    uint64_t scal;
-    uint64_t reg1;
-    uint64_t reg2;
-} od_t;
-
-typedef struct INST_STRUCT
-{
-    op_t op;    // enum of operators. e.g. mov, call, etc.
-    od_t src;   // operand src of instruction
-    od_t dst;   // operand dst of instruction
-} inst_t;
 
 /*======================================*/
 /*      parse assembly instruction      */
@@ -637,6 +587,8 @@ static void call_handler(od_t *src_od, od_t *dst_od, core_t *cr)
     (cr->reg).rsp = (cr->reg).rsp - 8;
     write64bits_dram(va2pa((cr->reg).rsp, cr), cr->rip + sizeof(char) * MAX_INSTRUCTION_CHAR, cr);
     // jump to target function address
+    // support pc relative addressing
+
     cr->rip = src;
     reset_cflags(cr);
 }

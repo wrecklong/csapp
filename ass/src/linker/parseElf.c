@@ -154,6 +154,56 @@ static void print_symtab_entry(st_entry_t* ste)
     ste->st_size);
 }
 
+static void parse_relocation(char *str, rl_entry_t* rte)
+{
+    char **cols;
+    int num_cols = parse_table_entry(str, &cols);
+
+    assert(num_cols == 5);
+
+    assert(rte != NULL);
+
+    rte->r_row = string2uint(cols[0]);
+    rte->r_col = string2uint(cols[1]);
+
+    if (strcmp(cols[2], "R_X86_64_32") == 0)
+    {
+        rte->type = R_X86_64_32;
+    }
+    else if (strcmp(cols[2], "R_X86_64_PC32") == 0)
+    {
+        rte->type = R_X86_64_PC32;
+    }
+    else if (strcmp(cols[2], "R_X86_64_PLT32") == 0)
+    {
+        rte->type = R_X86_64_PLT32;
+    }
+    else 
+    {
+        printf("relocation type is neither R_X86_64_32, R_X86_64_PC32, R_X86_64_PLT32");
+        exit(0);
+    }
+
+    rte->sym = string2uint(cols[3]);
+
+    uint64_t bitmap = string2uint(cols[4]);
+
+    rte->r_addend = *(int64_t *)&bitmap;
+
+    free_table_entry(cols, num_cols);
+}
+
+static void  print_relocation_entry(rl_entry_t* rte)
+{
+    debug_printf(DEBUG_LINKER, "%d\t%d\t%d\t%d\t%d\n", 
+    rte->r_row, 
+    rte->r_col, 
+    rte->type,
+    rte->sym,
+    rte->type
+    );
+}
+
 static int read_elf(const char *filename, uint64_t bufaddr)
 {
     FILE *fp;
@@ -234,10 +284,14 @@ void parse_elf(char *filename, elf_t *elf)
     }
 
     int sh_count = string2uint(elf->buffer[1]);
+    elf->sht_count = sh_count;
 
     elf->sht = malloc(sh_count *sizeof(sh_entry_t));
 
     sh_entry_t *symtab_sh= NULL;
+    sh_entry_t *rtext_sh = NULL;
+    sh_entry_t *rdata_sh = NULL;
+
     for (int i = 0; i < sh_count; i++)
     {
         parse_sh(elf->buffer[2 + i], &(elf->sht[i]));
@@ -246,6 +300,16 @@ void parse_elf(char *filename, elf_t *elf)
         if (strcmp(elf->sht[i].sh_name, ".symtab") == 0)
         {
             symtab_sh = &(elf->sht[i]);
+        }
+
+        if (strcmp(elf->sht[i].sh_name, ".rel.text") == 0)
+        {
+           rtext_sh = &(elf->sht[i]);
+        }
+
+        if (strcmp(elf->sht[i].sh_name, ".rel.data") == 0)
+        {
+            rdata_sh = &(elf->sht[i]);
         }
     }
 
@@ -260,6 +324,70 @@ void parse_elf(char *filename, elf_t *elf)
         print_symtab_entry(&(elf->symtab[i]));
     }
 
+    if (rtext_sh!=NULL)
+    {
+        elf->reltext_count = rtext_sh->sh_size;
+        elf->reltext = malloc(elf->reltext_count * sizeof(rl_entry_t));
+
+        for (int i = 0; i < rtext_sh->sh_size; i++)
+        {
+            parse_relocation(elf->buffer[i + rtext_sh->sh_offset], &(elf->reltext[i]));
+
+            int st = elf->reltext[i].sym;
+
+            assert(st >= 0 && st < elf->symtab_count);
+
+            print_relocation_entry(&(elf->reltext[i]));
+        }
+    }
+
+    else 
+    {
+        elf->reltext_count = 0;
+        elf->reltext = NULL;
+    }
+
+     if (rdata_sh!=NULL)
+    {
+        elf->reldata_count = rdata_sh->sh_size;
+        elf->reldata = malloc(elf->reldata_count * sizeof(rl_entry_t));
+
+        for (int i = 0; i < rdata_sh->sh_size; i++)
+        {
+            parse_relocation(elf->buffer[i + rdata_sh->sh_offset], &(elf->reldata[i]));
+
+            int st = elf->reldata[i].sym;
+
+            assert(st >= 0 && st < elf->symtab_count);
+
+            print_relocation_entry(&(elf->reldata[i]));
+        }
+    }
+
+    else 
+    {
+        elf->reldata_count = 0;
+        elf->reldata = NULL;
+    }
+}
+
+void write_eof(const char *filename, elf_t* eof)
+{
+    FILE *fp;
+    fp = fopen(filename, "w");
+
+    if (fp == NULL)
+    {
+        debug_printf(DEBUG_LINKER, "unablle to open file %s\n", filename);
+        exit(1);
+    }
+
+    for (int i = 0; i < eof->line_count; i++)
+    {
+        fprintf(fp, "%s\n", eof->buffer[i]);
+    }
+
+    fclose(fp);
 }
 
 void free_elf(elf_t *elf)
